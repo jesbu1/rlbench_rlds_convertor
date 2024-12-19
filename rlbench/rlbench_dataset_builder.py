@@ -43,9 +43,9 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._embed = hub.load(
-            "https://tfhub.dev/google/universal-sentence-encoder-large/5"
-        )
+        # self._embed = hub.load(
+        #    "https://tfhub.dev/google/universal-sentence-encoder-large/5"
+        # )
 
     def _info(self) -> tfds.core.DatasetInfo:
         """Dataset metadata (homepage, citation,...)."""
