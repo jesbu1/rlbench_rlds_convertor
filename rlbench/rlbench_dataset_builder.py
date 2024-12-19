@@ -120,9 +120,7 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
             "val": self._generate_examples(path=VAL_PATH),
         }
 
-    def _generate_examples(
-        self, path, language_instruction
-    ) -> Iterator[Tuple[str, Any]]:
+    def _generate_examples(self, path) -> Iterator[Tuple[str, Any]]:
         """Generator of examples for each split."""
 
         def _parse_example(episode_path, language_instruction: str):
