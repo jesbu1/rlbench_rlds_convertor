@@ -31,17 +31,12 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
                             "observation": tfds.features.FeaturesDict(
                                 {
                                     "image": tfds.features.Image(
-                                        shape=(64, 64, 3),
+                                        shape=(224, 224, 3),
                                         dtype=np.uint8,
                                         encoding_format="png",
-                                        doc="Main camera RGB observation.",
+                                        doc="Front camera RGB observation.",
                                     ),
-                                    "wrist_image": tfds.features.Image(
-                                        shape=(64, 64, 3),
-                                        dtype=np.uint8,
-                                        encoding_format="png",
-                                        doc="Wrist camera RGB observation.",
-                                    ),
+                                    # TODO: figure out this dimension
                                     "state": tfds.features.Tensor(
                                         shape=(10,),
                                         dtype=np.float32,
@@ -50,38 +45,25 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
                                     ),
                                 }
                             ),
+                            # TODO: figure out this dimension
                             "action": tfds.features.Tensor(
                                 shape=(10,),
                                 dtype=np.float32,
                                 doc="Robot action, consists of [7x joint velocities, "
                                 "2x gripper velocities, 1x terminate episode].",
                             ),
-                            "discount": tfds.features.Scalar(
-                                dtype=np.float32,
-                                doc="Discount if provided, default to 1.",
-                            ),
-                            "reward": tfds.features.Scalar(
-                                dtype=np.float32,
-                                doc="Reward if provided, 1 on final step for demos.",
-                            ),
-                            "is_first": tfds.features.Scalar(
-                                dtype=np.bool_, doc="True on first step of the episode."
-                            ),
-                            "is_last": tfds.features.Scalar(
-                                dtype=np.bool_, doc="True on last step of the episode."
-                            ),
-                            "is_terminal": tfds.features.Scalar(
-                                dtype=np.bool_,
-                                doc="True on last step of the episode if it is a terminal step, True for demos.",
-                            ),
+                            # "is_first": tfds.features.Scalar(
+                            #    dtype=np.bool_, doc="True on first step of the episode."
+                            # ),
+                            # "is_last": tfds.features.Scalar(
+                            #    dtype=np.bool_, doc="True on last step of the episode."
+                            # ),
+                            # "is_terminal": tfds.features.Scalar(
+                            #    dtype=np.bool_,
+                            #    doc="True on last step of the episode if it is a terminal step, True for demos.",
+                            # ),
                             "language_instruction": tfds.features.Text(
                                 doc="Language Instruction."
-                            ),
-                            "language_embedding": tfds.features.Tensor(
-                                shape=(512,),
-                                dtype=np.float32,
-                                doc="Kona language embedding. "
-                                "See https://tfhub.dev/google/universal-sentence-encoder-large/5",
                             ),
                         }
                     ),
@@ -115,26 +97,18 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
             # assemble episode --> here we're assuming demos so we set reward to 1 at the end
             episode = []
             for i, step in enumerate(data):
-                # compute Kona language embedding
-                language_embedding = self._embed([step["language_instruction"]])[
-                    0
-                ].numpy()
-
                 episode.append(
                     {
                         "observation": {
                             "image": step["image"],
-                            "wrist_image": step["wrist_image"],
+                            # "wrist_image": step["wrist_image"],
                             "state": step["state"],
                         },
                         "action": step["action"],
-                        "discount": 1.0,
-                        "reward": float(i == (len(data) - 1)),
-                        "is_first": i == 0,
-                        "is_last": i == (len(data) - 1),
-                        "is_terminal": i == (len(data) - 1),
+                        # "is_first": i == 0,
+                        # "is_last": i == (len(data) - 1),
+                        # "is_terminal": i == (len(data) - 1),
                         "language_instruction": step["language_instruction"],
-                        "language_embedding": language_embedding,
                     }
                 )
 
