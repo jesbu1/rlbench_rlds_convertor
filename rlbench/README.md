@@ -1,5 +1,1 @@
-TODO(example_dataset): Markdown description of your dataset.
-Description is **formatted** as markdown.
-
-It should also contain any processing which has been applied (if any),
-(e.g. corrupted example skipped, images cropped,...):
+RLBench simulated dataset for RLDS with just `front_cam_rgb` and delta `[x, y, z, euler_x, euler_y, euler_z, gripper_open]` as actions.

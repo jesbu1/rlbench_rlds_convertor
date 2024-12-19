@@ -15,6 +15,8 @@ from scipy.spatial.transform import Rotation as R
 CAM_NAME = "front_rgb"
 IMAGE_SHAPE = (224, 224, 3)
 DELTA_ACTION = True
+TRAIN_PATH = "/home/jeszhang/data/colosseum_dataset"
+VAL_PATH = TRAIN_PATH  # temp for now TODO fix
 
 
 def load_image(episode_path, image_folder, i):
@@ -114,8 +116,8 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         """Define data splits."""
         return {
-            "train": self._generate_examples(path="data/train/episode_*.npy"),
-            "val": self._generate_examples(path="data/val/episode_*.npy"),
+            "train": self._generate_examples(path=TRAIN_PATH),
+            "val": self._generate_examples(path=VAL_PATH),
         }
 
     def _generate_examples(
