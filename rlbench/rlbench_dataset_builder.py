@@ -6,10 +6,31 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 import tensorflow_hub as hub
+import PIL.Image as Image
 
 import rlbench
 
+from scipy.spatial.transform import Rotation as R
+
 CAM_NAME = "front_rgb"
+IMAGE_SHAPE = (224, 224, 3)
+DELTA_ACTION = True
+
+
+def load_image(episode_path, image_folder, i):
+    # load a png using PIL
+    image = Image.open(f"{episode_path}/{image_folder}/{i}.png")
+    image = image.resize((224, 224))
+    # convert to numpy array
+    data = np.array(image, dtype=np.uint8)
+    assert data.shape == IMAGE_SHAPE
+    return data
+
+
+def convert_rlbench_action_to_tf_action(action):
+    # [x, y, z, quaternion_x, quaternion_y, quaternion_z, quaternion_w, gripper] -> [x, y, z, euler_x, euler_y, euler_z, gripper]
+    actions_euler = R.from_quat(action[3:7]).to_euler("xyz")
+    return np.concatenate([action[:3], actions_euler, action[7:]])
 
 
 class RLBench(tfds.core.GeneratorBasedBuilder):
@@ -36,7 +57,7 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
                             "observation": tfds.features.FeaturesDict(
                                 {
                                     "image": tfds.features.Image(
-                                        shape=(224, 224, 3),
+                                        shape=IMAGE_SHAPE,
                                         dtype=np.uint8,
                                         encoding_format="png",
                                         doc="Front camera RGB observation.",
@@ -67,6 +88,10 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
                             "language_instruction": tfds.features.Text(
                                 doc="Language Instruction."
                             ),
+                            "reward": tfds.features.Scalar(
+                                dtype=np.float32,
+                                doc="Reward if provided, 1 on final step for demos.",
+                            ),
                             # "language_embedding": tfds.features.Tensor(
                             #    shape=(512,),
                             #    dtype=np.float32,
@@ -93,37 +118,52 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
             "val": self._generate_examples(path="data/val/episode_*.npy"),
         }
 
-    def _generate_examples(self, path) -> Iterator[Tuple[str, Any]]:
+    def _generate_examples(
+        self, path, language_instruction
+    ) -> Iterator[Tuple[str, Any]]:
         """Generator of examples for each split."""
 
         def _parse_example(episode_path, language_instruction: str):
             image_folder = CAM_NAME
-            # TODO: load `low_dim_obs.pkl` but it needs rlbench dependency
 
             # language_embedding = self._embed([step["language_instruction"]])[
             #    0
             # ].numpy()
+            with open(episode_path + "/low_dim_obs.pkl", "rb") as f:
+                demo = pickle.load(f)
 
-            # TODO: use delta action
+            gripper_poses = np.array(
+                [
+                    convert_rlbench_action_to_tf_action(
+                        demo._observations[i].gripper_pose
+                    )
+                    for i in range(len(demo._observations))
+                ]
+            )
 
-            # assemble episode --> here we're assuming demos so we set reward to 1 at the end
             episode = []
-            for i, step in enumerate(data):
+            prev_action = gripper_poses[0]
+            # - 1 offset because we're predicting the next action
+            for i in range(len(gripper_poses) - 1):
+                curr_action = gripper_poses[i + 1]
+                delta_action = curr_action - prev_action
                 episode.append(
                     {
                         "observation": {
-                            "image": step["image"],
+                            "image": load_image(episode_path, image_folder, i),
                             # "wrist_image": step["wrist_image"],
-                            "state": step["state"],
+                            # "state": step["state"],
                         },
-                        "action": step["action"],
+                        "action": delta_action if DELTA_ACTION else curr_action,
                         "is_first": i == 0,
-                        "is_last": i == (len(data) - 1),
-                        "is_terminal": i == (len(data) - 1),
+                        "reward": float(i == (len(gripper_poses) - 2)),
+                        "is_last": i == (len(gripper_poses) - 2),
+                        "is_terminal": i == (len(gripper_poses) - 2),
+                        "language_instruction": language_instruction,
                         #'language_embedding': language_embedding,
-                        "language_instruction": step["language_instruction"],
                     }
                 )
+                prev_action = curr_action
 
             # create output data sample
             sample = {"steps": episode, "episode_metadata": {"file_path": episode_path}}
@@ -144,11 +184,8 @@ class RLBench(tfds.core.GeneratorBasedBuilder):
             # randomly sample a language variation for each episode
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
                 this_episode_lang_description = np.random.choice(language_descriptions)
-                # add language descriptions to each episode
-                for i, step in enumerate(np.load(episode_path, allow_pickle=True)):
-                    step["language_instruction"] = language_descriptions[i]
                 # for smallish datasets, use single-thread parsing
-                yield _parse_example(episode_path)
+                yield _parse_example(episode_path, this_episode_lang_description)
 
         # for large datasets use beam to parallelize data parsing (this will have initialization overhead)
         # beam = tfds.core.lazy_imports.apache_beam
