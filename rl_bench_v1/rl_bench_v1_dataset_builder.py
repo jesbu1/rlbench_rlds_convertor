@@ -184,21 +184,15 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
 
         # create list of all examples by recursively finding all subfolders in path with the name variation*
         variations_paths = glob.glob(f"{path}/*/variation*", recursive=True)
-        print(f"Found {len(variations_paths)} variations in {path}")
-
-        # count number of episodes
-        total_num_episodes = 0
-        for variation in variations_paths:
-            # randomly sample a language variation for each episode
-            for episode_path in glob.glob(f"{variation}/episodes/episode*"):
-                total_num_episodes += 1
-        print(f"Found {total_num_episodes} episodes in {path}")
 
         if DEBUG:
+            print("---------------------DEBUG MODE-----------------------------")
             variations_paths = variations_paths[:2]
 
         # now for each variation* path we load the language descriptions in `variation_descriptions.pkl`
         # and add them to the example
+        print(f"---------------------Found {len(variations_paths)} variations in {path}--------------------")
+        examples = []
         for variation in variations_paths:
             # load language descriptions
             with open(f"{variation}/variation_descriptions.pkl", "rb") as f:
@@ -211,9 +205,9 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             #    # for large datasets use beam to parallelize data parsing (this will have initialization overhead)
             beam = tfds.core.lazy_imports.apache_beam
 
-            examples = []
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
                 this_episode_lang_description = np.random.choice(language_descriptions)
                 examples.append((episode_path, this_episode_lang_description))
 
+        print(f"-----------------------Will create {len(examples)} trajectories from {path}--------------------------------")
         return beam.Create(examples) | beam.MapTuple(_parse_example)
