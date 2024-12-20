@@ -35,7 +35,7 @@ def convert_rlbench_action_to_tf_action(action):
     return np.concatenate([action[:3], actions_euler, action[7:]])
 
 
-class RLBench(tfds.core.GeneratorBasedBuilder):
+class RLBenchV1(tfds.core.GeneratorBasedBuilder):
     """DatasetBuilder for example dataset."""
 
     VERSION = tfds.core.Version("1.0.0")
