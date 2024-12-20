@@ -173,7 +173,15 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
 
         # create list of all examples by recursively finding all subfolders in path with the name variation*
         variations_paths = glob.glob(f"{path}/*/variation*", recursive=True)
-        print(f"Found {len(variations_paths)} episodes in {path}")
+        print(f"Found {len(variations_paths)} variations in {path}")
+
+        # count number of episodes
+        total_num_episodes = 0
+        for variation in variations_paths:
+            # randomly sample a language variation for each episode
+            for episode_path in glob.glob(f"{variation}/episodes/episode*"):
+                total_num_episodes += 1
+        print(f"Found {total_num_episodes} episodes in {path}")
 
         # now for each variation* path we load the language descriptions in `variation_descriptions.pkl`
         # and add them to the example
