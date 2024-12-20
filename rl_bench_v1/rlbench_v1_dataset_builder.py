@@ -39,7 +39,7 @@ def get_action_from_obs(obs):
     return np.concatenate([gripper_pose[:3], actions_euler, gripper_close])
 
 
-class RlBenchV1(tfds.core.GeneratorBasedBuilder):
+class RLBenchV1(tfds.core.GeneratorBasedBuilder):
     """DatasetBuilder for example dataset."""
 
     VERSION = tfds.core.Version("1.0.0")

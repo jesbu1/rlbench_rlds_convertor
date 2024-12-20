@@ -1,3 +1,3 @@
 from setuptools import setup
 
-setup(name="rlbench_v1", packages=["rlbench_v1"])
+setup(name="rl_bench_v1", packages=["rl_bench_v1"])
