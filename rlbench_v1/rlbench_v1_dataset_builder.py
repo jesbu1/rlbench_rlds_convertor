@@ -203,10 +203,9 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
                 this_episode_lang_description = np.random.choice(language_descriptions)
                 # for smallish datasets, use single-thread parsing
-                #yield _parse_example(episode_path, this_episode_lang_description)
+                # yield _parse_example(episode_path, this_episode_lang_description)
                 # for large datasets use beam to parallelize data parsing (this will have initialization overhead)
                 beam = tfds.core.lazy_imports.apache_beam
-                return (
-                    beam.Create(episode_path, this_episode_lang_description)
-                    beam.Map(_parse_example)
-                )
+                return beam.Create(
+                    episode_path, this_episode_lang_description
+                ) | beam.Map(_parse_example)
