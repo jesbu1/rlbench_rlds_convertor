@@ -1,3 +1,25 @@
+# Instructions for converting RLBENCH trajectories to RLDS format
+
+This repo helps convert [RLBench](https://github.com/stepjam/RLBench) trajectories to RLDS format. 
+
+Almost all logic is in `rl_bench_v1/create_example_data.py.` Modify the train and validation folder paths at the top to point to your RLBench data. Follow the official [RLBench README](https://github.com/stepjam/RLBench) to generate your data.
+
+Below are the basic steps to convert RLBench data to RLDS format after you have modified `create_example_data.py` to point to your RLBench data.
+```
+conda env create -f envrionment_ubuntu.yml
+conda activate rlds_env
+pip install git+https://github.com/stepjam/RLBench.git
+pip install -e .
+cd rl_bench_v1
+export CUDA_VISIBLE_DEVICES= # disables GPU usage
+tfds build --overwrite --beam_pipeline_options="direct_running_mode=multi_processing,direct_num_workers=10" # set num_workers to whatever you want
+```
+
+The converted files will be saved to `~/tensorflow_datasets/rl_bench_v1`. You can visualize the data using the visualization steps in the original conversion script readme that follows below:
+
+
+
+# Below follow the original readme from Karl's repo
 # RLDS Dataset Conversion
 
 This repo demonstrates how to convert an existing dataset into RLDS format for X-embodiment experiment integration.
