@@ -31,7 +31,7 @@ def load_image(episode_path, image_folder, i):
 
 def convert_rlbench_action_to_tf_action(action):
     # [x, y, z, quaternion_x, quaternion_y, quaternion_z, quaternion_w, gripper] -> [x, y, z, euler_x, euler_y, euler_z, gripper]
-    actions_euler = R.from_quat(action[3:7]).to_euler("xyz")
+    actions_euler = R.from_quat(action[3:7]).as_euler("xyz")
     return np.concatenate([action[:3], actions_euler, action[7:]])
 
 
