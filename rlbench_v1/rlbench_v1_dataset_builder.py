@@ -139,7 +139,7 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
                     )
                     for i in range(len(demo._observations))
                 ]
-            )
+            ).astype(np.float32)
 
             episode = []
             prev_action = gripper_poses[0]
