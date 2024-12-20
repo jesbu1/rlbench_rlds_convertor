@@ -81,6 +81,10 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
                                 dtype=np.float32,
                                 doc="Robot action, consists of [x, y, z, euler_x, euler_y, euler_z, gripper]. Uses delta action.",
                             ),
+                            "discount": tfds.features.Scalar(
+                                dtype=np.float32,
+                                doc="Discount if provided, default to 1.",
+                            ),
                             "is_first": tfds.features.Scalar(
                                 dtype=np.bool_, doc="True on first step of the episode."
                             ),
@@ -98,12 +102,12 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
                                 dtype=np.float32,
                                 doc="Reward if provided, 1 on final step for demos.",
                             ),
-                            # "language_embedding": tfds.features.Tensor(
-                            #    shape=(512,),
-                            #    dtype=np.float32,
-                            #    doc="Kona language embedding. "
-                            #    "See https://tfhub.dev/google/universal-sentence-encoder-large/5",
-                            # ),
+                            "language_embedding": tfds.features.Tensor(
+                                shape=(512,),
+                                dtype=np.float32,
+                                doc="Kona language embedding. "
+                                "See https://tfhub.dev/google/universal-sentence-encoder-large/5",
+                            ),
                         }
                     ),
                     "episode_metadata": tfds.features.FeaturesDict(
@@ -135,9 +139,7 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
         def _parse_example(episode_path, language_instruction: str):
             image_folder = CAM_NAME
 
-            # language_embedding = self._embed([step["language_instruction"]])[
-            #    0
-            # ].numpy()
+            language_embedding = self._embed([step["language_instruction"]])[0].numpy()
             with open(episode_path + "/low_dim_obs.pkl", "rb") as f:
                 demo = pickle.load(f)
 
@@ -162,12 +164,13 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
                             # "state": step["state"],
                         },
                         "action": delta_action if DELTA_ACTION else curr_action,
+                        "discount": 1.0,
                         "is_first": i == 0,
                         "reward": float(i == (len(gripper_poses) - 2)),
                         "is_last": i == (len(gripper_poses) - 2),
                         "is_terminal": i == (len(gripper_poses) - 2),
                         "language_instruction": language_instruction,
-                        #'language_embedding': language_embedding,
+                        "language_embedding": language_embedding,
                     }
                 )
                 prev_action = curr_action
