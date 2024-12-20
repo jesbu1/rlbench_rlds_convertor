@@ -16,7 +16,8 @@ CAM_NAME = "front_rgb"
 IMAGE_SHAPE = (224, 224, 3)
 DELTA_ACTION = True
 TRAIN_PATH = "/home/jeszhang/data/colosseum_dataset"
-VAL_PATH = TRAIN_PATH  # temp for now TODO fix
+VAL_PATH = ""  # temp for now TODO fix
+DEBUG = True
 
 
 def load_image(episode_path, image_folder, i):
@@ -33,8 +34,9 @@ def get_action_from_obs(obs):
     # [x, y, z, quaternion_x, quaternion_y, quaternion_z, quaternion_w, gripper] -> [x, y, z, euler_x, euler_y, euler_z, gripper]
     gripper_pose = obs.gripper_pose
     gripper_open = np.array([obs.gripper_open])
+    gripper_close = 1 - gripper_open
     actions_euler = R.from_quat(gripper_pose[3:]).as_euler("xyz")
-    return np.concatenate([gripper_pose[:3], actions_euler, gripper_open])
+    return np.concatenate([gripper_pose[:3], actions_euler, gripper_close])
 
 
 class RLBenchV1(tfds.core.GeneratorBasedBuilder):
@@ -117,10 +119,15 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         """Define data splits."""
-        return {
+        ret_dict = {
             "train": self._generate_examples(path=TRAIN_PATH),
-            "val": self._generate_examples(path=VAL_PATH),
         }
+
+        if DEBUG:
+            return ret_dict
+
+        ret_dict.update({"val": self._generate_examples(path=VAL_PATH)})
+        return ret_dict
 
     def _generate_examples(self, path) -> Iterator[Tuple[str, Any]]:
         """Generator of examples for each split."""
@@ -182,6 +189,9 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
                 total_num_episodes += 1
         print(f"Found {total_num_episodes} episodes in {path}")
+
+        if DEBUG:
+            variations_paths = variations_paths[:2]
 
         # now for each variation* path we load the language descriptions in `variation_descriptions.pkl`
         # and add them to the example
