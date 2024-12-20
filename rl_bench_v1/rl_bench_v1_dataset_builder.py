@@ -139,7 +139,7 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
         def _parse_example(episode_path, language_instruction: str):
             image_folder = CAM_NAME
 
-            language_embedding = self._embed([step["language_instruction"]])[0].numpy()
+            language_embedding = self._embed([language_instruction])[0].numpy()
             with open(episode_path + "/low_dim_obs.pkl", "rb") as f:
                 demo = pickle.load(f)
 
