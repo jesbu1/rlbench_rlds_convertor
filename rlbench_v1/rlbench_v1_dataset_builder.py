@@ -29,10 +29,12 @@ def load_image(episode_path, image_folder, i):
     return data
 
 
-def convert_rlbench_action_to_tf_action(action):
+def get_action_from_obs(obs):
     # [x, y, z, quaternion_x, quaternion_y, quaternion_z, quaternion_w, gripper] -> [x, y, z, euler_x, euler_y, euler_z, gripper]
-    actions_euler = R.from_quat(action[3:7]).as_euler("xyz")
-    return np.concatenate([action[:3], actions_euler, action[7:]])
+    gripper_pose = obs.gripper_pose
+    gripper_open = np.array(obs.gripper_open)
+    actions_euler = R.from_quat(gripper_pose[3:]).as_euler("xyz")
+    return np.concatenate([gripper_pose[:3], actions_euler, gripper_open])
 
 
 class RLBenchV1(tfds.core.GeneratorBasedBuilder):
@@ -134,9 +136,7 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
 
             gripper_poses = np.array(
                 [
-                    convert_rlbench_action_to_tf_action(
-                        demo._observations[i].gripper_pose
-                    )
+                    get_action_from_obs(demo._observations[i])
                     for i in range(len(demo._observations))
                 ]
             ).astype(np.float32)
