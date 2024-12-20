@@ -32,7 +32,7 @@ def load_image(episode_path, image_folder, i):
 def get_action_from_obs(obs):
     # [x, y, z, quaternion_x, quaternion_y, quaternion_z, quaternion_w, gripper] -> [x, y, z, euler_x, euler_y, euler_z, gripper]
     gripper_pose = obs.gripper_pose
-    gripper_open = np.array(obs.gripper_open)
+    gripper_open = np.array([obs.gripper_open])
     actions_euler = R.from_quat(gripper_pose[3:]).as_euler("xyz")
     return np.concatenate([gripper_pose[:3], actions_euler, gripper_open])
 
