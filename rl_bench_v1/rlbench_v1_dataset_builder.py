@@ -17,7 +17,8 @@ IMAGE_SHAPE = (224, 224, 3)
 DELTA_ACTION = True
 TRAIN_PATH = "/home/jeszhang/data/colosseum_dataset"
 VAL_PATH = ""  # temp for now TODO fix
-DEBUG = True
+DEBUG = False
+SKIP_VAL = VAL_PATH == ""
 
 
 def load_image(episode_path, image_folder, i):
@@ -127,7 +128,7 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             "train": self._generate_examples(path=TRAIN_PATH),
         }
 
-        if DEBUG:
+        if DEBUG or SKIP_VAL:
             return ret_dict
 
         ret_dict.update({"val": self._generate_examples(path=VAL_PATH)})
