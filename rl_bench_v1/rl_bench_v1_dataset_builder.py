@@ -19,6 +19,7 @@ TRAIN_PATH = "/home/jeszhang/data/colosseum_dataset"
 VAL_PATH = ""  # temp for now TODO fix
 DEBUG = False
 SKIP_VAL = VAL_PATH == ""
+MULTIPROCESSED = False
 
 
 def load_image(episode_path, image_folder, i):
@@ -231,4 +232,8 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
         )
         # add len(examples) to each example so we can track progress
         examples = [(*example, len(examples)) for example in examples]
-        return beam.Create(examples) | beam.MapTuple(_parse_example)
+        if MULTIPROCESSED:
+            return beam.Create(examples) | beam.ParDo(_parse_example)
+        else:
+            for example in examples:
+                yield _parse_example(*example)
