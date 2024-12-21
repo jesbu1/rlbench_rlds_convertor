@@ -12,8 +12,14 @@ pip install git+https://github.com/stepjam/RLBench.git
 pip install -e .
 cd rl_bench_v1
 export CUDA_VISIBLE_DEVICES= # disables GPU usage
+tfds build --overwrite  # single-threaded
+```
+
+If you want to make it multi-processed, change `MULTIPROCESSED=TRUE` in the top `rl_bench_v1/create_example_data.py` 
+```
 tfds build --overwrite --beam_pipeline_options="direct_running_mode=multi_processing,direct_num_workers=10" # set num_workers to whatever you want
 ```
+
 
 The converted files will be saved to `~/tensorflow_datasets/rl_bench_v1`. You can visualize the data using the visualization steps in the original conversion script readme that follows below:
 
