@@ -137,7 +137,12 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
     def _generate_examples(self, path) -> Iterator[Tuple[str, Any]]:
         """Generator of examples for each split."""
 
-        def _parse_example(episode_path, language_instruction: str):
+        def _parse_example(
+            episode_path,
+            language_instruction: str,
+            which_episode: int,
+            total_episodes: int,
+        ):
             image_folder = CAM_NAME
 
             language_embedding = self._embed([language_instruction])[0].numpy()
@@ -179,6 +184,10 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             # create output data sample
             sample = {"steps": episode, "episode_metadata": {"file_path": episode_path}}
 
+            print(
+                f"---------------------Generated {which_episode} episode out of {total_episodes}---------------------"
+            )
+
             # if you want to skip an example for whatever reason, simply return None
             return episode_path, sample
 
@@ -207,7 +216,14 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
 
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
                 this_episode_lang_description = np.random.choice(language_descriptions)
-                examples.append((episode_path, this_episode_lang_description))
+                examples.append(
+                    (
+                        episode_path,
+                        this_episode_lang_description,
+                        len(examples),
+                        len(variations_paths),
+                    )
+                )
 
         print(f"-----------------------Will create {len(examples)} trajectories from {path}--------------------------------")
         return beam.Create(examples) | beam.MapTuple(_parse_example)
