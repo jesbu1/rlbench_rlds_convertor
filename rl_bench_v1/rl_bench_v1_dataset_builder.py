@@ -200,7 +200,9 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
 
         # now for each variation* path we load the language descriptions in `variation_descriptions.pkl`
         # and add them to the example
-        print(f"---------------------Found {len(variations_paths)} variations in {path}--------------------")
+        print(
+            f"---------------------Found {len(variations_paths)} variations in {path}--------------------"
+        )
         examples = []
         for variation in variations_paths:
             # load language descriptions
@@ -221,9 +223,12 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
                         episode_path,
                         this_episode_lang_description,
                         len(examples),
-                        len(variations_paths),
                     )
                 )
 
-        print(f"-----------------------Will create {len(examples)} trajectories from {path}--------------------------------")
+        print(
+            f"-----------------------Will create {len(examples)} trajectories from {path}--------------------------------"
+        )
+        # add len(examples) to each example so we can track progress
+        examples = [(*example, len(examples)) for example in examples]
         return beam.Create(examples) | beam.MapTuple(_parse_example)
