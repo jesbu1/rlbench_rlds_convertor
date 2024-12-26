@@ -10,12 +10,13 @@ conda env create -f envrionment_ubuntu.yml
 conda activate rlds_env
 pip install git+https://github.com/stepjam/RLBench.git
 pip install -e .
+pip install gymnasium
 cd rl_bench_v1
 export CUDA_VISIBLE_DEVICES= # disables GPU usage
 tfds build --overwrite  # single-threaded
 ```
 
-If you want to make it multi-processed, change `MULTIPROCESSED=TRUE` in the top `rl_bench_v1/create_example_data.py` 
+If you want to make it multi-processed, uncomment out the multiprocessing code at the bottom and comment out the single-threaded code. Then run: 
 ```
 tfds build --overwrite --beam_pipeline_options="direct_running_mode=multi_processing,direct_num_workers=10" # set num_workers to whatever you want
 ```

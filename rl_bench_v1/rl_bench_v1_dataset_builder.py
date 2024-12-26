@@ -19,7 +19,6 @@ TRAIN_PATH = "/home/jeszhang/data/colosseum_dataset"
 VAL_PATH = ""  # temp for now TODO fix
 DEBUG = False
 SKIP_VAL = VAL_PATH == ""
-MULTIPROCESSED = False
 
 
 def load_image(episode_path, image_folder, i):
@@ -193,7 +192,8 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             return episode_path, sample
 
         # create list of all examples by recursively finding all subfolders in path with the name variation*
-        variations_paths = glob.glob(f"{path}/*/variation*", recursive=True)
+        variations_paths = glob.glob(f"{path}/*/*variation*", recursive=True) #Colosseum or RLBench
+        #variations_paths = glob.glob(f"{path}/*/all_variations", recursive=True) # Just RLBench
 
         if DEBUG:
             print("---------------------DEBUG MODE-----------------------------")
@@ -215,7 +215,6 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             #    # for smallish datasets, use single-thread parsing
             #    # yield _parse_example(episode_path, this_episode_lang_description)
             #    # for large datasets use beam to parallelize data parsing (this will have initialization overhead)
-            beam = tfds.core.lazy_imports.apache_beam
 
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
                 this_episode_lang_description = np.random.choice(language_descriptions)
@@ -232,8 +231,10 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
         )
         # add len(examples) to each example so we can track progress
         examples = [(*example, len(examples)) for example in examples]
-        if MULTIPROCESSED:
-            return beam.Create(examples) | beam.ParDo(_parse_example)
-        else:
-            for example in examples:
-                yield _parse_example(*example)
+
+        ### SINGLE THREADED CODE
+        for example in examples:
+            yield _parse_example(*example)
+        #### for multiprocessed
+        #beam = tfds.core.lazy_imports.apache_beam
+        #return beam.Create(examples) | beam.ParDo(_parse_example)
