@@ -209,12 +209,6 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             # load language descriptions
             with open(f"{variation}/variation_descriptions.pkl", "rb") as f:
                 language_descriptions = pickle.load(f)
-            # randomly sample a language variation for each episode
-            # for episode_path in glob.glob(f"{variation}/episodes/episode*"):
-            #    this_episode_lang_description = np.random.choice(language_descriptions)
-            #    # for smallish datasets, use single-thread parsing
-            #    # yield _parse_example(episode_path, this_episode_lang_description)
-            #    # for large datasets use beam to parallelize data parsing (this will have initialization overhead)
 
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
                 this_episode_lang_description = np.random.choice(language_descriptions)
