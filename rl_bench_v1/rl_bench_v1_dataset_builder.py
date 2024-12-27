@@ -231,4 +231,4 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             yield _parse_example(*example)
         #### for multiprocessed
         #beam = tfds.core.lazy_imports.apache_beam
-        #return beam.Create(examples) | beam.ParDo(_parse_example)
+        #return beam.Create(examples) | beam.MapTuple(_parse_example)
