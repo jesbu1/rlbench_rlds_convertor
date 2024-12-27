@@ -17,7 +17,7 @@ from scipy.spatial.transform import Rotation as R
 CAM_NAME = "front_rgb"
 IMAGE_SHAPE = (224, 224, 3)
 DELTA_ACTION = True
-TRAIN_PATH = "/home/jeszhang/data/colosseum_dataset"
+TRAIN_PATH = "/home/liyi/workspace/dataset/rlbench_all_tasks_256_1000_eps_compressed/"
 VAL_PATH = ""  # temp for now TODO fix
 DEBUG = False
 SKIP_VAL = VAL_PATH == ""
