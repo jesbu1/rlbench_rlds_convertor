@@ -1,5 +1,6 @@
 from typing import Iterator, Tuple, Any
 import pickle
+import h5py
 
 import glob
 import numpy as np
@@ -7,6 +8,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 import tensorflow_hub as hub
 import PIL.Image as Image
+import io
 
 import rlbench
 
@@ -21,9 +23,10 @@ DEBUG = False
 SKIP_VAL = VAL_PATH == ""
 
 
-def load_image(episode_path, image_folder, i):
+def load_image(image_h5, i):
     # load a png using PIL
-    image = Image.open(f"{episode_path}/{image_folder}/{i}.png")
+    image_string = image_h5[f"image_{i}"][()]
+    image = Image.open(io.BytesIO(image_string))
     image = image.resize((224, 224))
     # convert to numpy array
     data = np.array(image, dtype=np.uint8)
@@ -139,12 +142,12 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
 
         def _parse_example(
             episode_path,
-            language_instruction: str,
             which_episode: int,
             total_episodes: int,
         ):
-            image_folder = CAM_NAME
-
+            with open(episode_path + "/variation_descriptions.pkl", "rb") as f:
+                language_instructions = pickle.load(f)
+            language_instruction = np.random.choice(language_instructions)
             language_embedding = self._embed([language_instruction])[0].numpy()
             with open(episode_path + "/low_dim_obs.pkl", "rb") as f:
                 demo = pickle.load(f)
@@ -159,27 +162,27 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             episode = []
             prev_action = gripper_poses[0]
             # - 1 offset because we're predicting the next action
-            for i in range(len(gripper_poses) - 1):
-                curr_action = gripper_poses[i + 1]
-                delta_action = curr_action - prev_action
-                episode.append(
-                    {
-                        "observation": {
-                            "image": load_image(episode_path, image_folder, i),
-                            # "wrist_image": step["wrist_image"],
-                            # "state": step["state"],
-                        },
-                        "action": delta_action if DELTA_ACTION else curr_action,
-                        "discount": 1.0,
-                        "is_first": i == 0,
-                        "reward": float(i == (len(gripper_poses) - 2)),
-                        "is_last": i == (len(gripper_poses) - 2),
-                        "is_terminal": i == (len(gripper_poses) - 2),
-                        "language_instruction": language_instruction,
-                        "language_embedding": language_embedding,
-                    }
-                )
-                prev_action = curr_action
+            # load the images from an h5 file
+            with h5py.File(episode_path + f"/{CAM_NAME}.h5", "r") as images:
+                for i in range(len(gripper_poses) - 1):
+                    curr_action = gripper_poses[i + 1]
+                    delta_action = curr_action - prev_action
+                    episode.append(
+                        {
+                            "observation": {
+                                "image": load_image(images, i),
+                            },
+                            "action": delta_action if DELTA_ACTION else curr_action,
+                            "discount": 1.0,
+                            "is_first": i == 0,
+                            "reward": float(i == (len(gripper_poses) - 2)),
+                            "is_last": i == (len(gripper_poses) - 2),
+                            "is_terminal": i == (len(gripper_poses) - 2),
+                            "language_instruction": language_instruction,
+                            "language_embedding": language_embedding,
+                        }
+                    )
+                    prev_action = curr_action
 
             # create output data sample
             sample = {"steps": episode, "episode_metadata": {"file_path": episode_path}}
@@ -207,15 +210,11 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
         examples = []
         for variation in variations_paths:
             # load language descriptions
-            with open(f"{variation}/variation_descriptions.pkl", "rb") as f:
-                language_descriptions = pickle.load(f)
 
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
-                this_episode_lang_description = np.random.choice(language_descriptions)
                 examples.append(
                     (
                         episode_path,
-                        this_episode_lang_description,
                         len(examples),
                     )
                 )
@@ -227,8 +226,8 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
         examples = [(*example, len(examples)) for example in examples]
 
         ### SINGLE THREADED CODE
-        for example in examples:
-            yield _parse_example(*example)
+        #for example in examples:
+        #    yield _parse_example(*example)
         #### for multiprocessed
-        #beam = tfds.core.lazy_imports.apache_beam
-        #return beam.Create(examples) | beam.ParDo(_parse_example)
+        beam = tfds.core.lazy_imports.apache_beam
+        return beam.Create(examples) | beam.ParDo(_parse_example)
