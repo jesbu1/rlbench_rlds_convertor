@@ -29,7 +29,7 @@ exclude_tasks = ["basketball_in_hoop", "change_channel",  "empty_dishwasher", "g
                          "take_shoes_out_of_box"]
 
 
-def _generate_examples(examples: list) -> Iterator[Tuple[str, Any]]:
+def _generate_examples(paths: list) -> Iterator[Tuple[str, Any]]:
     """Generator of examples for each split."""
     _embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
 
@@ -87,7 +87,7 @@ def _generate_examples(examples: list) -> Iterator[Tuple[str, Any]]:
         # if you want to skip an example for whatever reason, simply return None
         return episode_path, sample
 
-    for example in examples:
+    for example in paths:
         yield _parse_example(*example)
 
 
