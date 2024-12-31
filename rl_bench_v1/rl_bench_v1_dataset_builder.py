@@ -21,6 +21,12 @@ TRAIN_PATH = "/home/liyi/workspace/dataset/rlbench_all_tasks_256_1000_eps_compre
 VAL_PATH = ""  # temp for now TODO fix
 DEBUG = False
 SKIP_VAL = VAL_PATH == ""
+exclude_tasks = ["basketball_in_hoop", "change_channel",  "empty_dishwasher", "get_ice_from_fridge",
+                         "open_oven", "plug_charger_in_power_supply", "put_books_on_bookshelf", "put_tray_in_oven",
+                         "take_cup_out_from_cabinet", "take_tray_out_of_oven", "tv_on", "unplug_charger",
+                         "move_hanger", "turn_oven_on", 'press_switch', 'close_fridge', 'hang_frame_on_hanger',
+                         'open_fridge', 'put_books_at_shelf_location', "take_frame_off_hanger", "take_off_weighing_scales",
+                         "take_shoes_out_of_box"]
 
 
 def load_image(image_h5, i):
@@ -212,6 +218,8 @@ class RLBenchV1(tfds.core.GeneratorBasedBuilder):
             # load language descriptions
 
             for episode_path in glob.glob(f"{variation}/episodes/episode*"):
+                if any([excluded_name in episode_path for excluded_name in exclude_tasks]):
+                    continue
                 examples.append(
                     (
                         episode_path,
