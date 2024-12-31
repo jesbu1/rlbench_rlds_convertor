@@ -29,7 +29,7 @@ exclude_tasks = ["basketball_in_hoop", "change_channel",  "empty_dishwasher", "g
                          "take_shoes_out_of_box"]
 
 
-def _generate_examples(path) -> Iterator[Tuple[str, Any]]:
+def _generate_examples(examples: list) -> Iterator[Tuple[str, Any]]:
     """Generator of examples for each split."""
     _embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
 
@@ -87,16 +87,20 @@ def _generate_examples(path) -> Iterator[Tuple[str, Any]]:
         # if you want to skip an example for whatever reason, simply return None
         return episode_path, sample
 
+    for example in examples:
+        yield _parse_example(*example)
+
+
+def find_episodes(data_path):
     # create list of all examples by recursively finding all subfolders in path with the name variation*
     variations_paths = glob.glob(
-        f"{path}/*/*variation*", recursive=True
+        f"{data_path}/*/*variation*", recursive=True
     )  # Colosseum or RLBench
     # variations_paths = glob.glob(f"{path}/*/all_variations", recursive=True) # Just RLBench
 
     if DEBUG:
         print("---------------------DEBUG MODE-----------------------------")
         variations_paths = variations_paths[:2]
-
     # now for each variation* path we load the language descriptions in `variation_descriptions.pkl`
     # and add them to the example
     print(
@@ -115,15 +119,12 @@ def _generate_examples(path) -> Iterator[Tuple[str, Any]]:
                     len(examples),
                 )
             )
-
     print(
         f"-----------------------Will create {len(examples)} trajectories from {path}--------------------------------"
     )
     # add len(examples) to each example so we can track progress
     examples = [(*example, len(examples)) for example in examples]
-
-    for example in examples:
-        yield _parse_example(*example)
+    return examples
 
 
 def load_image(image_h5, i):
@@ -234,11 +235,11 @@ class RLBenchV1(MultiThreadedDatasetBuilder):
     def _split_paths(self):
         """Define data splits."""
         ret_dict = {
-            "train": self._generate_examples(path=TRAIN_PATH),
+            "train": find_episodes(TRAIN_PATH),
         }
 
         if DEBUG or SKIP_VAL:
             return ret_dict
 
-        ret_dict.update({"val": self._generate_examples(path=VAL_PATH)})
+        ret_dict.update({"val": find_episodes(VAL_PATH)})
         return ret_dict
