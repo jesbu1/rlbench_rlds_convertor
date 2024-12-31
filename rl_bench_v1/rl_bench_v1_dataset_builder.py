@@ -5,7 +5,6 @@ import h5py
 import glob
 from rl_bench_v1.conversion_utils import MultiThreadedDatasetBuilder
 import numpy as np
-import tensorflow as tf
 import tensorflow_datasets as tfds
 import tensorflow_hub as hub
 import PIL.Image as Image
@@ -232,7 +231,7 @@ class RLBenchV1(MultiThreadedDatasetBuilder):
             )
         )
 
-    def _split_generators(self, dl_manager: tfds.download.DownloadManager):
+    def _split_paths(self):
         """Define data splits."""
         ret_dict = {
             "train": self._generate_examples(path=TRAIN_PATH),
