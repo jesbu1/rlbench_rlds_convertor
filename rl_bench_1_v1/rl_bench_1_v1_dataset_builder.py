@@ -3,7 +3,7 @@ import pickle
 import h5py
 
 import glob
-from rl_bench_v1.conversion_utils import MultiThreadedDatasetBuilder
+from rl_bench_1_v1.conversion_utils import MultiThreadedDatasetBuilder
 import numpy as np
 import tensorflow_datasets as tfds
 import tensorflow_hub as hub
