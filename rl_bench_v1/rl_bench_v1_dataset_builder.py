@@ -56,26 +56,30 @@ def _generate_examples(paths: list) -> Iterator[Tuple[str, Any]]:
         prev_action = gripper_poses[0]
         # - 1 offset because we're predicting the next action
         # load the images from an h5 file
-        with h5py.File(episode_path + f"/{CAM_NAME}.h5", "r") as images:
-            for i in range(len(gripper_poses) - 1):
-                curr_action = gripper_poses[i + 1]
-                delta_action = curr_action - prev_action
-                episode.append(
-                    {
-                        "observation": {
-                            "image": load_image(images, i),
-                        },
-                        "action": delta_action if DELTA_ACTION else curr_action,
-                        "discount": 1.0,
-                        "is_first": i == 0,
-                        "reward": float(i == (len(gripper_poses) - 2)),
-                        "is_last": i == (len(gripper_poses) - 2),
-                        "is_terminal": i == (len(gripper_poses) - 2),
-                        "language_instruction": language_instruction,
-                        "language_embedding": language_embedding,
-                    }
-                )
-                prev_action = curr_action
+        try:
+            with h5py.File(episode_path + f"/{CAM_NAME}.h5", "r") as images:
+                for i in range(len(gripper_poses) - 1):
+                    curr_action = gripper_poses[i + 1]
+                    delta_action = curr_action - prev_action
+                    episode.append(
+                        {
+                            "observation": {
+                                "image": load_image(images, i),
+                            },
+                            "action": delta_action if DELTA_ACTION else curr_action,
+                            "discount": 1.0,
+                            "is_first": i == 0,
+                            "reward": float(i == (len(gripper_poses) - 2)),
+                            "is_last": i == (len(gripper_poses) - 2),
+                            "is_terminal": i == (len(gripper_poses) - 2),
+                            "language_instruction": language_instruction,
+                            "language_embedding": language_embedding,
+                        }
+                    )
+                    prev_action = curr_action
+        except:
+            print("Skipping {which_episode}")
+            return None
 
         # create output data sample
         sample = {"steps": episode, "episode_metadata": {"file_path": episode_path}}
@@ -154,9 +158,9 @@ class RLBenchV1(MultiThreadedDatasetBuilder):
     RELEASE_NOTES = {
         "1.0.0": "Initial release.",
     }
-    N_WORKERS = 10  # number of parallel workers for data conversion
+    N_WORKERS = 15  # number of parallel workers for data conversion
     MAX_PATHS_IN_MEMORY = (
-        100  # number of paths converted & stored in memory before writing to disk
+        45 # number of paths converted & stored in memory before writing to disk
     )
     # -> the higher the faster / more parallel conversion, adjust based on avilable RAM
     # note that one path may yield multiple episodes and adjust accordingly
