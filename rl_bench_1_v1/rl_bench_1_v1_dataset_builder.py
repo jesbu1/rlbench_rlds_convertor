@@ -20,13 +20,32 @@ DELTA_ACTION = True
 TRAIN_PATH = "/home/liyi/workspace/dataset/rlbench_all_tasks_256_1000_eps_compressed/"
 VAL_PATH = ""  # temp for now TODO fix
 DEBUG = False
+DATA_FRACTION = (0, 1 / 3)
 SKIP_VAL = VAL_PATH == ""
-exclude_tasks = ["basketball_in_hoop", "change_channel",  "empty_dishwasher", "get_ice_from_fridge",
-                         "open_oven", "plug_charger_in_power_supply", "put_books_on_bookshelf", "put_tray_in_oven",
-                         "take_cup_out_from_cabinet", "take_tray_out_of_oven", "tv_on", "unplug_charger",
-                         "move_hanger", "turn_oven_on", 'press_switch', 'close_fridge', 'hang_frame_on_hanger',
-                         'open_fridge', 'put_books_at_shelf_location', "take_frame_off_hanger", "take_off_weighing_scales",
-                         "take_shoes_out_of_box"]
+exclude_tasks = [
+    "basketball_in_hoop",
+    "change_channel",
+    "empty_dishwasher",
+    "get_ice_from_fridge",
+    "open_oven",
+    "plug_charger_in_power_supply",
+    "put_books_on_bookshelf",
+    "put_tray_in_oven",
+    "take_cup_out_from_cabinet",
+    "take_tray_out_of_oven",
+    "tv_on",
+    "unplug_charger",
+    "move_hanger",
+    "turn_oven_on",
+    "press_switch",
+    "close_fridge",
+    "hang_frame_on_hanger",
+    "open_fridge",
+    "put_books_at_shelf_location",
+    "take_frame_off_hanger",
+    "take_off_weighing_scales",
+    "take_shoes_out_of_box",
+]
 
 
 def _generate_examples(paths: list) -> Iterator[Tuple[str, Any]]:
@@ -123,11 +142,19 @@ def find_episodes(data_path):
                     len(examples),
                 )
             )
+    # add len(examples) to each example so we can track progress
+    examples_start, examples_end = (
+        int(len(examples) * DATA_FRACTION[0]),
+        int(len(examples) * DATA_FRACTION[1]),
+    )
+    print(
+        f"-----------------------Reducing data from {len(examples)} to {examples_start}:{examples_end}--------------------------------"
+    )
+    examples = examples[examples_start:examples_end]
+    examples = [(*example, len(examples)) for example in examples]
     print(
         f"-----------------------Will create {len(examples)} trajectories from {data_path}--------------------------------"
     )
-    # add len(examples) to each example so we can track progress
-    examples = [(*example, len(examples)) for example in examples]
     return examples
 
 
@@ -158,9 +185,9 @@ class RLBenchV1(MultiThreadedDatasetBuilder):
     RELEASE_NOTES = {
         "1.0.0": "Initial release.",
     }
-    N_WORKERS = 15  # number of parallel workers for data conversion
+    N_WORKERS = 10  # number of parallel workers for data conversion
     MAX_PATHS_IN_MEMORY = (
-        45 # number of paths converted & stored in memory before writing to disk
+        100  # number of paths converted & stored in memory before writing to disk
     )
     # -> the higher the faster / more parallel conversion, adjust based on avilable RAM
     # note that one path may yield multiple episodes and adjust accordingly
