@@ -1,3 +1,17 @@
+# Instructions for converting LIBERO trajectories to RLDS format
+You will need to modify the bottom of `LIBERO_90_dataset_builder.py` file to point to your LIBERO data.
+```
+conda env create -f envrionment_ubuntu.yml
+conda activate rlds_env
+pip install -e .
+export CUDA_VISIBLE_DEVICES= # disables GPU usage
+cd LIBERO_90
+tfds build --overwrite  # single-threaded
+```
+
+
+
+
 # Instructions for converting RLBENCH trajectories to RLDS format
 
 This repo helps convert [RLBench](https://github.com/stepjam/RLBench) trajectories to RLDS format. 
