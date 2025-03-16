@@ -4,9 +4,7 @@ import os
 import h5py
 import glob
 import numpy as np
-import tensorflow as tf
 import tensorflow_datasets as tfds
-import sys
 from LIBERO_90.conversion_utils import MultiThreadedDatasetBuilder
 
 
@@ -89,8 +87,8 @@ class LIBERO90(MultiThreadedDatasetBuilder):
     RELEASE_NOTES = {
       '1.0.0': 'Initial release.',
     }
-    N_WORKERS = 40             # number of parallel workers for data conversion
-    MAX_PATHS_IN_MEMORY = 80   # number of paths converted & stored in memory before writing to disk
+    N_WORKERS = 10             # number of parallel workers for data conversion
+    MAX_PATHS_IN_MEMORY = 20   # number of paths converted & stored in memory before writing to disk
                                # -> the higher the faster / more parallel conversion, adjust based on avilable RAM
                                # note that one path may yield multiple episodes and adjust accordingly
     PARSE_FCN = _generate_examples      # handle to parse function from file paths to RLDS episodes
@@ -103,12 +101,14 @@ class LIBERO90(MultiThreadedDatasetBuilder):
                     'observation': tfds.features.FeaturesDict({
                         'image': tfds.features.Image(
                             shape=(256, 256, 3),
+                            #shape=(128, 128, 3),
                             dtype=np.uint8,
                             encoding_format='jpeg',
                             doc='Main camera RGB observation.',
                         ),
                         'wrist_image': tfds.features.Image(
                             shape=(256, 256, 3),
+                            #shape=(128, 128, 3),
                             dtype=np.uint8,
                             encoding_format='jpeg',
                             doc='Wrist camera RGB observation.',
@@ -163,5 +163,7 @@ class LIBERO90(MultiThreadedDatasetBuilder):
     def _split_paths(self):
         """Define filepaths for data splits."""
         return {
-            "train": glob.glob("/PATH/TO/LIBERO/libero/datasets/libero_90_no_noops/*.hdf5"),
+            #"train": glob.glob("/PATH/TO/LIBERO/libero/datasets/libero_90_no_noops/*.hdf5"),
+            "train": glob.glob("/home/jeszhang/LIBERO/libero/datasets/libero_90_openvla_processed/*.hdf5"),
+            #"train": glob.glob("/home/jeszhang/LIBERO/libero/datasets/libero_90/*.hdf5"),
         }
