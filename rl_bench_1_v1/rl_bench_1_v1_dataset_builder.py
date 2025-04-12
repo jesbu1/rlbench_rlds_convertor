@@ -77,15 +77,24 @@ def _generate_examples(paths: list) -> Iterator[Tuple[str, Any]]:
         # load the images from an h5 file
         try:
             with h5py.File(episode_path + f"/{CAM_NAME}.h5", "r") as images:
+                #FIX logic
                 for i in range(len(gripper_poses) - 1):
                     curr_action = gripper_poses[i + 1]
-                    delta_action = curr_action - prev_action
+                    if DELTA_ACTION:
+                        # Compute delta for first 6 components (position and Euler angles)
+                        delta_linear = curr_action[:6] - prev_action[:6]
+                        # Directly use the current gripper_close state (7th component)
+                        gripper_close_state = curr_action[6:7]
+                        delta_action = np.concatenate([delta_linear, gripper_close_state])
+                    else:
+                        delta_action = curr_action
+                    image = load_image(image_files[i])
                     episode.append(
                         {
                             "observation": {
-                                "image": load_image(images, i),
+                                "image": image,
                             },
-                            "action": delta_action if DELTA_ACTION else curr_action,
+                            "action": delta_action,
                             "discount": 1.0,
                             "is_first": i == 0,
                             "reward": float(i == (len(gripper_poses) - 2)),
@@ -96,6 +105,26 @@ def _generate_examples(paths: list) -> Iterator[Tuple[str, Any]]:
                         }
                     )
                     prev_action = curr_action
+                    
+                # for i in range(len(gripper_poses) - 1):
+                #     curr_action = gripper_poses[i + 1]
+                #     delta_action = curr_action - prev_action
+                #     episode.append(
+                #         {
+                #             "observation": {
+                #                 "image": load_image(images, i),
+                #             },
+                #             "action": delta_action if DELTA_ACTION else curr_action,
+                #             "discount": 1.0,
+                #             "is_first": i == 0,
+                #             "reward": float(i == (len(gripper_poses) - 2)),
+                #             "is_last": i == (len(gripper_poses) - 2),
+                #             "is_terminal": i == (len(gripper_poses) - 2),
+                #             "language_instruction": language_instruction,
+                #             "language_embedding": language_embedding,
+                #         }
+                #     )
+                #     prev_action = curr_action
         except:
             print("Skipping {which_episode}")
             return None
