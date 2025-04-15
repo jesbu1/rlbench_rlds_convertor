@@ -1,9 +1,13 @@
 # Instructions for converting LIBERO trajectories to RLDS format
+This branch includes the maskedvla paths and masks
+
 You will need to modify the bottom of `LIBERO_90_dataset_builder.py` file to point to your LIBERO data.
 ```
-conda env create -f envrionment_ubuntu.yml
+conda env create -f environment_ubuntu.yml
 conda activate rlds_env
 pip install -e .
+pip install opencv-python-headless
+pip install shapely
 export CUDA_VISIBLE_DEVICES= # disables GPU usage
 cd LIBERO_90
 tfds build --overwrite  # single-threaded
