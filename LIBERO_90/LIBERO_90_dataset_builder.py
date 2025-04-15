@@ -10,7 +10,7 @@ from LIBERO_90.conversion_utils import MultiThreadedDatasetBuilder
 from pathlib import Path
 from LIBERO_90.mask_path_utils import get_mask_and_path_from_h5
 
-path_and_mask_file_dir = "/home1/jessez/scratch_data/libero_openvla_processed_datasets/libero_90_openvla_processed"
+path_and_mask_file_dir = "/home1/jessez/project_data/libero_90_processed_256/"
 
 def _generate_examples(paths) -> Iterator[Tuple[str, Any]]:
     """Yields episodes for list of data paths."""
