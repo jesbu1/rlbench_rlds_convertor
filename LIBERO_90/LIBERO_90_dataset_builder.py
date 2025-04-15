@@ -7,6 +7,10 @@ import numpy as np
 import tensorflow_datasets as tfds
 from LIBERO_90.conversion_utils import MultiThreadedDatasetBuilder
 
+from pathlib import Path
+from LIBERO_90.mask_path_utils import get_mask_and_path_from_h5
+
+path_and_mask_file_dir = "/home1/jessez/scratch_data/libero_openvla_processed_datasets/libero_90_openvla_processed"
 
 def _generate_examples(paths) -> Iterator[Tuple[str, Any]]:
     """Yields episodes for list of data paths."""
@@ -25,6 +29,24 @@ def _generate_examples(paths) -> Iterator[Tuple[str, Any]]:
             images = F['data'][f"demo_{demo_id}"]["obs"]["agentview_rgb"][()]
             wrist_images = F['data'][f"demo_{demo_id}"]["obs"]["eye_in_hand_rgb"][()]
 
+            # get the path and path_masked images
+            masked_imgs, path_imgs, masked_path_imgs, quests = (
+                get_mask_and_path_from_h5(
+                    annotation_path=Path(path_and_mask_file_dir)
+                    / "dataset_movement_and_masks.h5",
+                    task_key=episode_path.split(".")[0],
+                    observation=F["data"][f"demo_{demo_id}"]["obs"],
+                    demo_key=f"demo_{demo_id}",
+                )
+            )
+            assert (
+                len(masked_imgs)
+                == len(path_imgs)
+                == len(masked_path_imgs)
+                == len(quests)
+                == len(actions)
+            ), "Lengths of masked_img, path, subtask_path, quests, ee_pos, and action must match"
+
         # compute language instruction
         raw_file_string = os.path.basename(episode_path).split('/')[-1]
         words = raw_file_string[:-10].split("_")
@@ -39,21 +61,32 @@ def _generate_examples(paths) -> Iterator[Tuple[str, Any]]:
         # assemble episode --> here we're assuming demos so we set reward to 1 at the end
         episode = []
         for i in range(actions.shape[0]):
-            episode.append({
-                'observation': {
-                    'image': images[i][::-1,::-1],
-                    'wrist_image': wrist_images[i][::-1,::-1],
-                    'state': np.asarray(np.concatenate((states[i], gripper_states[i]), axis=-1), np.float32),
-                    'joint_state': np.asarray(joint_states[i], dtype=np.float32),
-                },
-                'action': np.asarray(actions[i], dtype=np.float32),
-                'discount': 1.0,
-                'reward': float(i == (actions.shape[0] - 1)),
-                'is_first': i == 0,
-                'is_last': i == (actions.shape[0] - 1),
-                'is_terminal': i == (actions.shape[0] - 1),
-                'language_instruction': command,
-            })
+            episode.append(
+                {
+                    "observation": {
+                        "image": images[i][::-1, ::-1],
+                        "wrist_image": wrist_images[i][::-1, ::-1],
+                        "path_masked_image": masked_path_imgs[i][
+                            :, ::-1
+                        ],  # don't flip the first dim because it was already flipped in get_mask_and_path_from_h5
+                        "path_image": path_imgs[i][
+                            :, ::-1
+                        ],  # don't flip the first dim because it was already flipped in get_mask_and_path_from_h5
+                        "state": np.asarray(
+                            np.concatenate((states[i], gripper_states[i]), axis=-1),
+                            np.float32,
+                        ),
+                        "joint_state": np.asarray(joint_states[i], dtype=np.float32),
+                    },
+                    "action": np.asarray(actions[i], dtype=np.float32),
+                    "discount": 1.0,
+                    "reward": float(i == (actions.shape[0] - 1)),
+                    "is_first": i == 0,
+                    "is_last": i == (actions.shape[0] - 1),
+                    "is_terminal": i == (actions.shape[0] - 1),
+                    "language_instruction": command,
+                }
+            )
 
         # create output data sample
         sample = {
@@ -96,74 +129,95 @@ class LIBERO90(MultiThreadedDatasetBuilder):
     def _info(self) -> tfds.core.DatasetInfo:
         """Dataset metadata (homepage, citation,...)."""
         return self.dataset_info_from_configs(
-            features=tfds.features.FeaturesDict({
-                'steps': tfds.features.Dataset({
-                    'observation': tfds.features.FeaturesDict({
-                        'image': tfds.features.Image(
-                            shape=(256, 256, 3),
-                            #shape=(128, 128, 3),
-                            dtype=np.uint8,
-                            encoding_format='jpeg',
-                            doc='Main camera RGB observation.',
-                        ),
-                        'wrist_image': tfds.features.Image(
-                            shape=(256, 256, 3),
-                            #shape=(128, 128, 3),
-                            dtype=np.uint8,
-                            encoding_format='jpeg',
-                            doc='Wrist camera RGB observation.',
-                        ),
-                        'state': tfds.features.Tensor(
-                            shape=(8,),
-                            dtype=np.float32,
-                            doc='Robot EEF state (6D pose, 2D gripper).',
-                        ),
-                        'joint_state': tfds.features.Tensor(
-                            shape=(7,),
-                            dtype=np.float32,
-                            doc='Robot joint angles.',
-                        )
-                    }),
-                    'action': tfds.features.Tensor(
-                        shape=(7,),
-                        dtype=np.float32,
-                        doc='Robot EEF action.',
+            features=tfds.features.FeaturesDict(
+                {
+                    "steps": tfds.features.Dataset(
+                        {
+                            "observation": tfds.features.FeaturesDict(
+                                {
+                                    "image": tfds.features.Image(
+                                        shape=(256, 256, 3),
+                                        # shape=(128, 128, 3),
+                                        dtype=np.uint8,
+                                        encoding_format="jpeg",
+                                        doc="Main camera RGB observation.",
+                                    ),
+                                    "wrist_image": tfds.features.Image(
+                                        shape=(256, 256, 3),
+                                        # shape=(128, 128, 3),
+                                        dtype=np.uint8,
+                                        encoding_format="jpeg",
+                                        doc="Wrist camera RGB observation.",
+                                    ),
+                                    "path_masked_image": tfds.features.Image(
+                                        shape=(256, 256, 3),
+                                        dtype=np.uint8,
+                                        encoding_format="jpeg",
+                                        doc="Masked image observation.",
+                                    ),
+                                    "path_image": tfds.features.Image(
+                                        shape=(256, 256, 3),
+                                        dtype=np.uint8,
+                                        encoding_format="jpeg",
+                                        doc="Path image observation.",
+                                    ),
+                                    "state": tfds.features.Tensor(
+                                        shape=(8,),
+                                        dtype=np.float32,
+                                        doc="Robot EEF state (6D pose, 2D gripper).",
+                                    ),
+                                    "joint_state": tfds.features.Tensor(
+                                        shape=(7,),
+                                        dtype=np.float32,
+                                        doc="Robot joint angles.",
+                                    ),
+                                }
+                            ),
+                            "action": tfds.features.Tensor(
+                                shape=(7,),
+                                dtype=np.float32,
+                                doc="Robot EEF action.",
+                            ),
+                            "discount": tfds.features.Scalar(
+                                dtype=np.float32,
+                                doc="Discount if provided, default to 1.",
+                            ),
+                            "reward": tfds.features.Scalar(
+                                dtype=np.float32,
+                                doc="Reward if provided, 1 on final step for demos.",
+                            ),
+                            "is_first": tfds.features.Scalar(
+                                dtype=np.bool_, doc="True on first step of the episode."
+                            ),
+                            "is_last": tfds.features.Scalar(
+                                dtype=np.bool_, doc="True on last step of the episode."
+                            ),
+                            "is_terminal": tfds.features.Scalar(
+                                dtype=np.bool_,
+                                doc="True on last step of the episode if it is a terminal step, True for demos.",
+                            ),
+                            "language_instruction": tfds.features.Text(
+                                doc="Language Instruction."
+                            ),
+                        }
                     ),
-                    'discount': tfds.features.Scalar(
-                        dtype=np.float32,
-                        doc='Discount if provided, default to 1.'
+                    "episode_metadata": tfds.features.FeaturesDict(
+                        {
+                            "file_path": tfds.features.Text(
+                                doc="Path to the original data file."
+                            ),
+                        }
                     ),
-                    'reward': tfds.features.Scalar(
-                        dtype=np.float32,
-                        doc='Reward if provided, 1 on final step for demos.'
-                    ),
-                    'is_first': tfds.features.Scalar(
-                        dtype=np.bool_,
-                        doc='True on first step of the episode.'
-                    ),
-                    'is_last': tfds.features.Scalar(
-                        dtype=np.bool_,
-                        doc='True on last step of the episode.'
-                    ),
-                    'is_terminal': tfds.features.Scalar(
-                        dtype=np.bool_,
-                        doc='True on last step of the episode if it is a terminal step, True for demos.'
-                    ),
-                    'language_instruction': tfds.features.Text(
-                        doc='Language Instruction.'
-                    ),
-                }),
-                'episode_metadata': tfds.features.FeaturesDict({
-                    'file_path': tfds.features.Text(
-                        doc='Path to the original data file.'
-                    ),
-                }),
-            }))
+                }
+            )
+        )
 
     def _split_paths(self):
         """Define filepaths for data splits."""
         return {
-            #"train": glob.glob("/PATH/TO/LIBERO/libero/datasets/libero_90_no_noops/*.hdf5"),
-            "train": glob.glob("/home/jeszhang/LIBERO/libero/datasets/libero_90_openvla_processed/*.hdf5"),
-            #"train": glob.glob("/home/jeszhang/LIBERO/libero/datasets/libero_90/*.hdf5"),
+            # "train": glob.glob("/PATH/TO/LIBERO/libero/datasets/libero_90_no_noops/*.hdf5"),
+            "train": glob.glob(
+                "/home1/jessez/scratch_data/libero_openvla_processed_datasets/libero_90_openvla_processed/*.hdf5"
+            ),
+            # "train": glob.glob("/home/jeszhang/LIBERO/libero/datasets/libero_90/*.hdf5"),
         }
