@@ -30,15 +30,19 @@ def _generate_examples(paths) -> Iterator[Tuple[str, Any]]:
             wrist_images = F['data'][f"demo_{demo_id}"]["obs"]["eye_in_hand_rgb"][()]
 
             # get the path and path_masked images
-            masked_imgs, path_imgs, masked_path_imgs, quests = (
-                get_mask_and_path_from_h5(
-                    annotation_path=Path(path_and_mask_file_dir)
-                    / "dataset_movement_and_masks.h5",
-                    task_key=episode_path.split(".")[0],
-                    observation=F["data"][f"demo_{demo_id}"]["obs"],
-                    demo_key=f"demo_{demo_id}",
+            try:
+                masked_imgs, path_imgs, masked_path_imgs, quests = (
+                    get_mask_and_path_from_h5(
+                        annotation_path=Path(path_and_mask_file_dir)
+                        / "dataset_movement_and_masks.h5",
+                        task_key=episode_path.split(".")[0],
+                        observation=F["data"][f"demo_{demo_id}"]["obs"],
+                        demo_key=f"demo_{demo_id}",
+                    )
                 )
-            )
+            except KeyError as e:
+                print(f"KeyError for {demo_id} in {episode_path}: {e}")
+                return None
             assert (
                 len(masked_imgs)
                 == len(path_imgs)
