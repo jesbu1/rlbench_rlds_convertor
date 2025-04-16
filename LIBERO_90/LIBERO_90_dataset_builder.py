@@ -74,9 +74,9 @@ def _generate_examples(paths) -> Iterator[Tuple[str, Any]]:
                         "path_masked_image": masked_path_imgs[i][
                             :, ::-1
                         ],  # don't flip the first dim because it was already flipped in get_mask_and_path_from_h5
-                        "path_image": path_imgs[i][
-                            :, ::-1
-                        ],  # don't flip the first dim because it was already flipped in get_mask_and_path_from_h5
+                        # "path_image": path_imgs[i][
+                        #    :, ::-1
+                        # ],  # don't flip the first dim because it was already flipped in get_mask_and_path_from_h5
                         "state": np.asarray(
                             np.concatenate((states[i], gripper_states[i]), axis=-1),
                             np.float32,
@@ -160,12 +160,12 @@ class LIBERO90(MultiThreadedDatasetBuilder):
                                         encoding_format="jpeg",
                                         doc="Masked image observation.",
                                     ),
-                                    "path_image": tfds.features.Image(
-                                        shape=(256, 256, 3),
-                                        dtype=np.uint8,
-                                        encoding_format="jpeg",
-                                        doc="Path image observation.",
-                                    ),
+                                    # "path_image": tfds.features.Image(
+                                    #    shape=(256, 256, 3),
+                                    #    dtype=np.uint8,
+                                    #    encoding_format="jpeg",
+                                    #    doc="Path image observation.",
+                                    # ),
                                     "state": tfds.features.Tensor(
                                         shape=(8,),
                                         dtype=np.float32,
